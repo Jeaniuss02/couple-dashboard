@@ -1,19 +1,48 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 import { Button, Card } from '@/components/ui'
 import { getSupabaseBrowser } from '@/lib/supabase/client'
 
+type Mode = 'password' | 'magic'
+type State = 'idle' | 'working' | 'sent' | 'error'
+
 export default function LoginPage() {
+  const router = useRouter()
+  const [mode, setMode] = useState<Mode>('password')
   const [email, setEmail] = useState('')
-  const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+  const [password, setPassword] = useState('')
+  const [state, setState] = useState<State>('idle')
   const [message, setMessage] = useState('')
 
-  const signIn = async (e: React.FormEvent) => {
+  async function signInWithPassword(e: React.FormEvent) {
     e.preventDefault()
-    setState('sending')
+    setState('working')
+
+    const { error } = await getSupabaseBrowser().auth.signInWithPassword({ email, password })
+
+    if (error) {
+      setState('error')
+      setMessage(
+        /invalid login credentials/i.test(error.message)
+          ? 'That email and password combination does not match an account.'
+          : error.message,
+      )
+      return
+    }
+
+    // Cookies are set by the browser client, so the server components pick the
+    // session up on the very next render.
+    router.replace('/')
+    router.refresh()
+  }
+
+  async function sendMagicLink(e: React.FormEvent) {
+    e.preventDefault()
+    setState('working')
 
     const { error } = await getSupabaseBrowser().auth.signInWithOtp({
       email,
@@ -26,7 +55,11 @@ export default function LoginPage() {
 
     if (error) {
       setState('error')
-      setMessage(error.message)
+      setMessage(
+        /email address not authorized/i.test(error.message)
+          ? 'This project is still on the built-in email service, which only delivers to the owner’s address. Set up custom SMTP in Supabase, or sign in with a password.'
+          : error.message,
+      )
     } else {
       setState('sent')
     }
@@ -36,7 +69,9 @@ export default function LoginPage() {
     <div className="mx-auto max-w-sm py-10">
       <h1 className="text-center text-2xl">Welcome back</h1>
       <p className="mt-1.5 text-center text-sm text-espresso-soft">
-        A magic link lands in your inbox. No passwords to forget.
+        {mode === 'password'
+          ? 'Just the two of you. Same email you were set up with.'
+          : 'A magic link lands in your inbox.'}
       </p>
 
       <Card className="mt-6">
@@ -46,12 +81,55 @@ export default function LoginPage() {
               📬
             </p>
             <p className="mt-2 text-sm font-medium">Check {email}</p>
-            <p className="mt-1 text-xs text-espresso-faint">
-              The link signs you straight in.
-            </p>
+            <p className="mt-1 text-xs text-espresso-faint">The link signs you straight in.</p>
           </div>
+        ) : mode === 'password' ? (
+          <form onSubmit={signInWithPassword} className="space-y-3">
+            <div>
+              <label className="label mb-1.5" htmlFor="email">
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                required
+                className="field"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                autoComplete="email"
+              />
+            </div>
+
+            <div>
+              <label className="label mb-1.5" htmlFor="password">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                required
+                className="field"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                autoComplete="current-password"
+              />
+            </div>
+
+            {state === 'error' && <p className="text-xs text-terracotta">{message}</p>}
+
+            <Button
+              type="submit"
+              variant="primary"
+              loading={state === 'working'}
+              className="w-full"
+            >
+              Sign in
+            </Button>
+          </form>
         ) : (
-          <form onSubmit={signIn} className="space-y-3">
+          <form onSubmit={sendMagicLink} className="space-y-3">
             <div>
               <label className="label mb-1.5" htmlFor="email">
                 Email
@@ -73,7 +151,7 @@ export default function LoginPage() {
             <Button
               type="submit"
               variant="primary"
-              loading={state === 'sending'}
+              loading={state === 'working'}
               className="w-full"
             >
               Send magic link
@@ -81,6 +159,20 @@ export default function LoginPage() {
           </form>
         )}
       </Card>
+
+      <p className="mt-4 text-center text-xs text-espresso-faint">
+        <button
+          type="button"
+          className="underline decoration-gold-soft underline-offset-2 hover:text-espresso"
+          onClick={() => {
+            setMode(mode === 'password' ? 'magic' : 'password')
+            setState('idle')
+            setMessage('')
+          }}
+        >
+          {mode === 'password' ? 'Send me a magic link instead' : 'Sign in with a password instead'}
+        </button>
+      </p>
 
       <p className="mt-5 text-center text-xs text-espresso-faint">
         Just looking?{' '}

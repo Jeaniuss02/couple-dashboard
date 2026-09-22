@@ -1,0 +1,183 @@
+@import 'tailwindcss';
+
+/**
+ * Warm editorial palette.
+ *
+ * Tailwind 4 is CSS-first: these custom properties ARE the config. A token
+ * named --color-gold-deep generates bg-gold-deep, text-gold-deep, and so on,
+ * so components still use tokens and never raw hex.
+ */
+@theme {
+  --color-gold: #d4af37;
+  --color-gold-deep: #c5a059;
+  --color-gold-soft: #e8d9a8;
+
+  --color-camel: #c19a6b;
+  --color-camel-soft: #e3d2bc;
+
+  --color-linen: #faf7f2;
+  --color-linen-deep: #f2ede4;
+  --color-linen-edge: #e7dfd2;
+
+  --color-espresso: #2b2625;
+  --color-espresso-soft: #6b615d;
+  --color-espresso-faint: #9c918b;
+
+  --color-terracotta: #c97a63;
+  --color-terracotta-soft: #f3e0da;
+
+  --color-olive: #8f9779;
+  --color-olive-soft: #e6e9de;
+
+  /* Reserved strictly for buttons that send a WhatsApp message. */
+  --color-whatsapp: #25d366;
+  --color-whatsapp-deep: #1eb455;
+
+  --font-display: var(--font-display-family), Georgia, serif;
+  --font-sans: var(--font-body-family), system-ui, sans-serif;
+
+  --shadow-card: 0 1px 2px rgb(43 38 37 / 0.04), 0 8px 24px -12px rgb(43 38 37 / 0.18);
+  --shadow-lift: 0 2px 4px rgb(43 38 37 / 0.05), 0 18px 40px -18px rgb(43 38 37 / 0.3);
+
+  --animate-rise-in: rise-in 220ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  --animate-pop: pop 360ms cubic-bezier(0.2, 0.7, 0.3, 1);
+
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes pop {
+    0% {
+      transform: scale(1);
+    }
+    45% {
+      transform: scale(1.06);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-linen);
+    color: var(--color-espresso);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    /* A whisper of warmth behind the cards, not a gradient you notice. */
+    background-image: radial-gradient(
+      120% 80% at 50% -10%,
+      rgb(212 175 55 / 0.07) 0%,
+      rgb(250 247 242 / 0) 60%
+    );
+    background-attachment: fixed;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.015em;
+  }
+
+  /* Never let the gold ring be the only affordance — keep it visible. */
+  :focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 2px var(--color-linen),
+      0 0 0 4px var(--color-gold);
+  }
+
+  ::selection {
+    background: rgb(212 175 55 / 0.24);
+  }
+}
+
+@layer components {
+  .card {
+    border-radius: 1rem;
+    border: 1px solid var(--color-linen-edge);
+    background: rgb(255 255 255 / 0.8);
+    box-shadow: var(--shadow-card);
+    backdrop-filter: blur(4px);
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    border-radius: 9999px;
+    padding: 0.25rem 0.625rem;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 500;
+  }
+
+  .label {
+    display: block;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--color-espresso-faint);
+  }
+
+  .field {
+    width: 100%;
+    border-radius: 0.75rem;
+    border: 1px solid var(--color-linen-edge);
+    background: #fff;
+    padding: 0.625rem 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--color-espresso);
+  }
+
+  .field::placeholder {
+    color: var(--color-espresso-faint);
+  }
+
+  .field:focus {
+    outline: none;
+    border-color: var(--color-gold-deep);
+    box-shadow: 0 0 0 3px rgb(212 175 55 / 0.3);
+  }
+
+  /* Hairline rule with a gold centre — the editorial section divider. */
+  .rule {
+    height: 1px;
+    width: 100%;
+    border: 0;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--color-linen-edge) 18%,
+      var(--color-gold-soft) 50%,
+      var(--color-linen-edge) 82%,
+      transparent
+    );
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -269,6 +269,7 @@ function materialize(
     ends_at: endsAt,
     all_day: series.all_day,
     kind: series.kind,
+    label: series.label,
     owner_id: series.owner_id,
     created_by: series.created_by,
     notified_at: null,

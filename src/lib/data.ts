@@ -10,8 +10,10 @@ import type {
   EventException,
   EventSeries,
   MessageTemplate,
+  MoodEntry,
   Penalty,
   Profile,
+  WishlistItem,
 } from '@/lib/types'
 import { expandAll } from '@/lib/recurrence'
 import type { Members } from '@/lib/rotation'
@@ -111,6 +113,41 @@ export async function getPenalties(): Promise<Penalty[]> {
     .order('status')
     .order('claimed_at', { ascending: false })
   return (data ?? []) as Penalty[]
+}
+
+/** Completion history inside a window — drives the calendar chips and the chart. */
+export async function getLogsInRange(from: Date, to: Date): Promise<DealLog[]> {
+  const supabase = createClient()
+  const { data } = await supabase
+    .from('deal_logs')
+    .select('*')
+    .gte('completed_at', from.toISOString())
+    .lt('completed_at', to.toISOString())
+    .order('completed_at', { ascending: false })
+  return (data ?? []) as DealLog[]
+}
+
+/** Members only — RLS returns nothing for a visitor, which is the intent. */
+export async function getMoods(from: Date, to: Date): Promise<MoodEntry[]> {
+  const supabase = createClient()
+  const { data } = await supabase
+    .from('mood_entries')
+    .select('*')
+    .gte('entry_date', from.toISOString().slice(0, 10))
+    .lte('entry_date', to.toISOString().slice(0, 10))
+    .order('entry_date')
+  return (data ?? []) as MoodEntry[]
+}
+
+export async function getWishlist(): Promise<WishlistItem[]> {
+  const supabase = createClient()
+  const { data } = await supabase
+    .from('wishlist_items')
+    .select('*')
+    .order('status')
+    .order('target_date', { nullsFirst: false })
+    .order('created_at', { ascending: false })
+  return (data ?? []) as WishlistItem[]
 }
 
 export async function getTemplates(): Promise<MessageTemplate[]> {

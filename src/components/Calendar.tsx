@@ -9,7 +9,16 @@ import { useTicker } from './hooks'
 import { Button, cx, SegmentedControl, useViewer } from './ui'
 import { format, monthGrid, rangeFor, toDate, weekGrid } from '@/lib/dates'
 import { summarizeTurn, turnDueAt, type Members } from '@/lib/rotation'
-import type { BoardEvent, DealWithSteps, Profile } from '@/lib/types'
+import {
+  EVENT_LABELS,
+  LABEL_HEX,
+  MOOD_SCALE,
+  type BoardEvent,
+  type DealLog,
+  type DealWithSteps,
+  type MoodEntry,
+  type Profile,
+} from '@/lib/types'
 
 export type CalendarView = 'month' | 'week' | 'day'
 
@@ -26,11 +35,17 @@ export function Calendar({
   deals,
   members,
   pair,
+  logs,
+  moods,
 }: {
   initialEvents: BoardEvent[]
   deals: DealWithSteps[]
   members: Profile[]
   pair: Members
+  /** Completion history, so the calendar shows what actually got done. */
+  logs: DealLog[]
+  /** Members only — empty for visitors, which is intended. */
+  moods: MoodEntry[]
 }) {
   const viewer = useViewer()
   const now = useTicker()
@@ -70,6 +85,19 @@ export function Calendar({
     }
     return map
   }, [events])
+
+  /** What was actually completed on each day — the history layer. */
+  const logsByDay = useMemo(() => {
+    const map = new Map<string, DealLog[]>()
+    for (const log of logs) push(map, dayKey(toDate(log.completed_at)), log)
+    return map
+  }, [logs])
+
+  const moodsByDay = useMemo(() => {
+    const map = new Map<string, MoodEntry[]>()
+    for (const m of moods) if (m.scope === 'day') push(map, m.entry_date, m)
+    return map
+  }, [moods])
 
   const badgesByDay = useMemo(() => {
     const map = new Map<string, DealBadge[]>()
@@ -152,6 +180,8 @@ export function Calendar({
           anchor={anchor}
           eventsByDay={eventsByDay}
           badgesByDay={badgesByDay}
+          logsByDay={logsByDay}
+          moodsByDay={moodsByDay}
           members={members}
           onPick={setSelected}
         />
@@ -160,10 +190,14 @@ export function Calendar({
           days={days}
           eventsByDay={eventsByDay}
           badgesByDay={badgesByDay}
+          logsByDay={logsByDay}
+          moodsByDay={moodsByDay}
           members={members}
           onPick={setSelected}
         />
       )}
+
+      <LabelLegend />
 
       {viewer.isMember && (
         <Button
@@ -180,6 +214,8 @@ export function Calendar({
           day={selected}
           events={eventsByDay.get(dayKey(selected)) ?? []}
           badges={badgesByDay.get(dayKey(selected)) ?? []}
+          logs={logsByDay.get(dayKey(selected)) ?? []}
+          moods={moods}
           members={members}
           pair={pair}
           onClose={() => setSelected(null)}
@@ -208,6 +244,8 @@ function MonthGrid({
   anchor,
   eventsByDay,
   badgesByDay,
+  logsByDay,
+  moodsByDay,
   members,
   onPick,
 }: {
@@ -215,6 +253,8 @@ function MonthGrid({
   anchor: Date
   eventsByDay: Map<string, BoardEvent[]>
   badgesByDay: Map<string, DealBadge[]>
+  logsByDay: Map<string, DealLog[]>
+  moodsByDay: Map<string, MoodEntry[]>
   members: Profile[]
   onPick: (day: Date) => void
 }) {
@@ -237,8 +277,13 @@ function MonthGrid({
           const key = dayKey(day)
           const dayEvents = eventsByDay.get(key) ?? []
           const badges = badgesByDay.get(key) ?? []
+          const dayLogs = logsByDay.get(key) ?? []
+          const dayMoods = moodsByDay.get(key) ?? []
           const outside = !isSameMonth(day, anchor)
           const hasOverdue = badges.some((b) => b.overdue)
+          const topMood = dayMoods[0]
+            ? MOOD_SCALE.find((m) => m.score === dayMoods[0].score)
+            : null
 
           return (
             <button
@@ -261,11 +306,30 @@ function MonthGrid({
                 {format(day, 'd')}
               </span>
 
-              {hasOverdue && (
+              {/* Top-right corner: mood face if rated, else an overdue dot. */}
+              {topMood ? (
+                <span
+                  className="absolute right-1 top-1.5 text-[13px] leading-none"
+                  title={`${dayMoods.length > 1 ? 'Moods' : 'Mood'}: ${topMood.label}`}
+                >
+                  {topMood.emoji}
+                </span>
+              ) : hasOverdue ? (
                 <span
                   aria-hidden
                   className="absolute right-1.5 top-2 h-1.5 w-1.5 rounded-full bg-terracotta"
                 />
+              ) : null}
+
+              {/* History: a tick with a count for turns logged on this day. */}
+              {dayLogs.length > 0 && (
+                <span
+                  className="absolute bottom-1 right-1 inline-flex items-center gap-0.5 rounded-full
+                             bg-olive-soft px-1 text-[9px] font-semibold text-[#5c6348]"
+                  title={`${dayLogs.length} logged`}
+                >
+                  ✓{dayLogs.length}
+                </span>
               )}
 
               <div className="mt-1 space-y-0.5">
@@ -276,14 +340,16 @@ function MonthGrid({
                       key={event.id}
                       className="flex items-center gap-1 truncate rounded-md px-1 py-[1px] text-[10px] leading-tight"
                       style={{
-                        background: `${owner?.color ?? '#D4AF37'}1F`,
+                        // Colour carries the event's label, not its owner —
+                        // the avatar dot carries who it belongs to.
+                        background: `${LABEL_HEX[event.label] ?? '#C19A6B'}24`,
                         color: '#2B2625',
                       }}
                     >
                       <span
                         aria-hidden
                         className="h-1 w-1 shrink-0 rounded-full"
-                        style={{ background: owner?.color ?? '#D4AF37' }}
+                        style={{ background: owner?.color ?? '#9C918B' }}
                       />
                       <span className="truncate">{event.title}</span>
                       {event.series_id && (
@@ -327,12 +393,16 @@ function AgendaList({
   days,
   eventsByDay,
   badgesByDay,
+  logsByDay,
+  moodsByDay,
   members,
   onPick,
 }: {
   days: Date[]
   eventsByDay: Map<string, BoardEvent[]>
   badgesByDay: Map<string, DealBadge[]>
+  logsByDay: Map<string, DealLog[]>
+  moodsByDay: Map<string, MoodEntry[]>
   members: Profile[]
   onPick: (day: Date) => void
 }) {
@@ -342,6 +412,8 @@ function AgendaList({
         const key = dayKey(day)
         const dayEvents = eventsByDay.get(key) ?? []
         const badges = badgesByDay.get(key) ?? []
+        const dayLogs = logsByDay.get(key) ?? []
+        const dayMoods = moodsByDay.get(key) ?? []
         return (
           <button
             key={key}
@@ -366,8 +438,28 @@ function AgendaList({
             </span>
 
             <span className="min-w-0 flex-1 space-y-1.5">
-              {dayEvents.length === 0 && badges.length === 0 && (
+              {dayEvents.length === 0 && badges.length === 0 && dayLogs.length === 0 && (
                 <span className="block text-sm text-espresso-faint">Nothing scheduled</span>
+              )}
+
+              {(dayMoods.length > 0 || dayLogs.length > 0) && (
+                <span className="flex flex-wrap items-center gap-2">
+                  {dayMoods.map((m) => {
+                    const who = members.find((p) => p.id === m.profile_id)
+                    const mood = MOOD_SCALE.find((x) => x.score === m.score)
+                    return (
+                      <span key={m.id} className="inline-flex items-center gap-1 text-[11px]">
+                        <span className="text-sm leading-none">{mood?.emoji}</span>
+                        <span className="text-espresso-faint">{who?.display_name}</span>
+                      </span>
+                    )
+                  })}
+                  {dayLogs.length > 0 && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-olive-soft px-2 py-0.5 text-[11px] text-[#5c6348]">
+                      ✓ {dayLogs.length} logged
+                    </span>
+                  )}
+                </span>
               )}
               {dayEvents.map((event) => {
                 const owner = members.find((m) => m.id === event.owner_id)
@@ -376,7 +468,7 @@ function AgendaList({
                     <span
                       aria-hidden
                       className="h-3.5 w-1 shrink-0 rounded-full"
-                      style={{ background: owner?.color ?? '#D4AF37' }}
+                      style={{ background: LABEL_HEX[event.label] ?? '#C19A6B' }}
                     />
                     <span className="truncate font-medium">{event.title}</span>
                     {event.series_id && (
@@ -407,6 +499,20 @@ function AgendaList({
           </button>
         )
       })}
+    </div>
+  )
+}
+
+/** What the eight colours mean — colour alone should never carry information. */
+function LabelLegend() {
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-1">
+      {EVENT_LABELS.map((l) => (
+        <span key={l.value} className="inline-flex items-center gap-1.5 text-[11px] text-espresso-faint">
+          <span aria-hidden className="h-2.5 w-2.5 rounded-[3px]" style={{ background: l.hex }} />
+          {l.name}
+        </span>
+      ))}
     </div>
   )
 }

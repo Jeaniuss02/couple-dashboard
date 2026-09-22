@@ -172,6 +172,46 @@
   }
 }
 
+/* Drifting hearts behind the board (HeartsBackground). Two combined
+   animations: a slow rise with sideways drift, plus an offset twinkle, so no
+   two hearts pulse in lockstep. */
+@layer components {
+  /* Outer span drifts upward and carries the base opacity. */
+  .heart {
+    bottom: -10%;
+    animation: heart-rise var(--rise, 28s) linear infinite;
+    animation-delay: var(--delay, 0s);
+    will-change: transform;
+  }
+
+  /* Inner glyph twinkles on its own short cycle. Nesting multiplies the two
+     opacities, so the twinkle brightens the heart without ever overriding how
+     faint it is meant to be. */
+  .heart > svg {
+    animation: heart-twinkle var(--twinkle, 3.5s) ease-in-out infinite;
+    animation-delay: var(--delay, 0s);
+  }
+
+@keyframes heart-rise {
+  from {
+    transform: translate3d(0, 0, 0) rotate(-6deg);
+  }
+  to {
+    transform: translate3d(var(--drift, 0px), -115vh, 0) rotate(6deg);
+  }
+}
+
+@keyframes heart-twinkle {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

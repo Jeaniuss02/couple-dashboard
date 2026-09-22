@@ -7,8 +7,9 @@ import { DealCard } from './DealCard'
 import { useAction } from './hooks'
 import { Avatar, Button, Chip, MemberOnly, Sheet, Toast } from './ui'
 import { format, formatEventTime } from '@/lib/dates'
+import { MoodPicker } from './MoodPicker'
 import type { Members } from '@/lib/rotation'
-import type { BoardEvent, Profile } from '@/lib/types'
+import { LABEL_HEX, type BoardEvent, type DealLog, type MoodEntry, type Profile } from '@/lib/types'
 
 /**
  * Everything happening on one day, with the same one-tap deal controls as the
@@ -18,6 +19,8 @@ export function DayDrawer({
   day,
   events,
   badges,
+  logs,
+  moods,
   members,
   pair,
   onClose,
@@ -27,6 +30,8 @@ export function DayDrawer({
   day: Date
   events: BoardEvent[]
   badges: DealBadge[]
+  logs: DealLog[]
+  moods: MoodEntry[]
   members: Profile[]
   pair: Members
   onClose: () => void
@@ -95,6 +100,25 @@ export function DayDrawer({
           </MemberOnly>
         }
       >
+        {/* Mood first — it is the one thing you can only record for today. */}
+        <section className="mb-5">
+          <MoodPicker day={day} scope="day" entries={moods} members={members} onChanged={onChanged} />
+          <details className="mt-2">
+            <summary className="cursor-pointer text-[11px] text-espresso-faint hover:text-espresso">
+              rate the whole week instead
+            </summary>
+            <div className="mt-2">
+              <MoodPicker
+                day={day}
+                scope="week"
+                entries={moods}
+                members={members}
+                onChanged={onChanged}
+              />
+            </div>
+          </details>
+        </section>
+
         <section>
           <h3 className="label mb-2">Plans</h3>
           {events.length === 0 ? (
@@ -110,7 +134,7 @@ export function DayDrawer({
                     <span
                       aria-hidden
                       className="mt-0.5 h-10 w-1 shrink-0 rounded-full"
-                      style={{ background: owner?.color ?? '#D4AF37' }}
+                      style={{ background: LABEL_HEX[event.label] ?? '#C19A6B' }}
                     />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{event.title}</p>
@@ -159,6 +183,36 @@ export function DayDrawer({
             </ul>
           )}
         </section>
+
+        {/* History: what actually got done on this day. */}
+        {logs.length > 0 && (
+          <section className="mt-6">
+            <h3 className="label mb-2">Logged this day</h3>
+            <ul className="grid gap-1.5">
+              {logs.map((log) => {
+                const who = members.find((m) => m.id === log.completed_by)
+                return (
+                  <li
+                    key={log.id}
+                    className="flex items-center gap-2 rounded-xl border border-linen-edge bg-white/60 px-3 py-2 text-sm"
+                  >
+                    <Avatar profile={who} size={20} />
+                    <span className="min-w-0 flex-1 truncate">
+                      <span className="font-medium">{who?.display_name ?? 'Someone'}</span>{' '}
+                      <span className="text-espresso-soft">did {log.step_label.toLowerCase()}</span>
+                      {log.was_takeover && (
+                        <span className="ml-1 text-xs text-terracotta">(covered)</span>
+                      )}
+                    </span>
+                    <span className="shrink-0 text-[11px] text-espresso-faint">
+                      {format(new Date(log.completed_at), 'h:mm a')}
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
+          </section>
+        )}
 
         {deals.length > 0 && (
           <section className="mt-6">

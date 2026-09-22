@@ -86,7 +86,7 @@ export function DealBuilder({
     }
 
     const result = await run('create-deal', { url: '/api/deals', body: payload }, {
-      success: () => 'Deal created',
+      success: () => 'Task created',
     })
     if (result) {
       onSaved?.()
@@ -104,7 +104,7 @@ export function DealBuilder({
       <Sheet
         open
         onClose={onClose}
-        title="New deal"
+        title="New task"
         footer={
           <Button
             variant="primary"
@@ -113,7 +113,7 @@ export function DealBuilder({
             disabled={!valid}
             className="w-full"
           >
-            Create deal
+            Create task
           </Button>
         }
       >

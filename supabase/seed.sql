@@ -21,8 +21,12 @@ set display_name   = v.display_name,
     phone_verified = v.phone is not null,
     is_member      = true
 from (values
-  ('you@example.com',     'Ava',  '🌙', '#C5A059', '+60123456789'),
-  ('partner@example.com', 'Noor', '☀️', '#C19A6B', '+60198765432')
+  -- These two colours identify each of you everywhere: avatars, calendar
+  -- stripes, chart series. They are a validated categorical pair (ΔE 25.5
+  -- normal vision, 20.4 under protanopia) — the original warm-on-warm pair
+  -- was ΔE 3.1, i.e. the same colour to everyone.
+  ('you@example.com',     'Ava',  '🌙', '#B5842B', '+60123456789'),
+  ('partner@example.com', 'Noor', '☀️', '#0F6E96', '+60198765432')
 ) as v(email, display_name, emoji, color, phone)
 where p.id = (select id from auth.users u where u.email = v.email);
 

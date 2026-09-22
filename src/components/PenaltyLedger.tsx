@@ -74,12 +74,12 @@ export function PenaltyLedger({
   return (
     <div className="space-y-6">
       <SectionHeading
-        title="Owed"
+        title="Compensation"
         hint="Treats, favours and forfeits — tracked so nobody has to remember."
         action={
           <MemberOnly>
             <Button variant="ghost" size="sm" onClick={() => setAdding(true)}>
-              + Add IOU
+              + Add compensation
             </Button>
           </MemberOnly>
         }
@@ -258,7 +258,7 @@ function AddIouSheet({
       <Sheet
         open
         onClose={onClose}
-        title="Add an IOU"
+        title="Add compensation"
         footer={
           <Button
             variant="primary"
@@ -267,7 +267,7 @@ function AddIouSheet({
             disabled={!title.trim() || !owedBy || !owedTo}
             className="w-full"
           >
-            Add to ledger
+            Add to the list
           </Button>
         }
       >

@@ -16,7 +16,7 @@ import { getEvents, getMembers, getSettings, nameLookup } from '@/lib/data'
 import { formatForMessage } from '@/lib/dates'
 import { describeRecurrence } from '@/lib/recurrence'
 import { createClient } from '@/lib/supabase/server'
-import type { CalendarEvent, EventKind, EventSeries, RecurrenceFreq } from '@/lib/types'
+import { EVENT_LABELS, type CalendarEvent, type EventKind, type EventLabel, type EventSeries, type RecurrenceFreq } from '@/lib/types'
 import { notify } from '@/lib/whatsapp/notify'
 
 export const dynamic = 'force-dynamic'
@@ -66,6 +66,11 @@ export async function POST(req: NextRequest) {
     const description = optionalString(body.description)
     const location = optionalString(body.location, 200)
     const allDay = body.all_day === true
+    const label = oneOf<EventLabel>(
+      body.label ?? 'camel',
+      EVENT_LABELS.map((l) => l.value),
+      'label',
+    )
 
     const supabase = createClient()
     const members = await getMembers()
@@ -90,6 +95,7 @@ export async function POST(req: NextRequest) {
               : Math.round((Date.parse(endsAt) - Date.parse(startsAt)) / 60_000),
           all_day: allDay,
           kind,
+          label,
           owner_id: ownerId,
           created_by: me.id,
           timezone: rule.timezone ?? settings?.timezone ?? 'Asia/Kuala_Lumpur',
@@ -136,6 +142,7 @@ export async function POST(req: NextRequest) {
         ends_at: endsAt,
         all_day: allDay,
         kind,
+        label,
         owner_id: ownerId,
         created_by: me.id,
       })

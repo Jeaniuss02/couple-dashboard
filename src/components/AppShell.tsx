@@ -6,6 +6,7 @@ import type { ReactNode } from 'react'
 
 import dynamic from 'next/dynamic'
 
+import { HeartsBackground } from './HeartsBackground'
 import { Avatar, cx, useViewer, ViewerProvider } from './ui'
 import type { Profile, Viewer } from '@/lib/types'
 
@@ -15,8 +16,9 @@ const RealtimeSync = dynamic(() => import('./RealtimeSync'), { ssr: false })
 const NAV = [
   { href: '/', label: 'Board', icon: HomeIcon },
   { href: '/calendar', label: 'Calendar', icon: CalendarIcon },
-  { href: '/deals', label: 'Deals', icon: DealIcon },
-  { href: '/ledger', label: 'Owed', icon: LedgerIcon },
+  { href: '/tasks', label: 'Tasks', icon: DealIcon },
+  { href: '/compensation', label: 'Compensation', icon: LedgerIcon },
+  { href: '/wishlist', label: 'Wishes', icon: WishIcon },
 ]
 
 export function AppShell({
@@ -53,6 +55,7 @@ function Shell({
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-3xl flex-col px-4 pb-24 sm:px-6 sm:pb-10">
+      <HeartsBackground />
       <RealtimeSync />
       <header className="flex items-center justify-between gap-3 py-5 sm:py-7">
         <Link href="/" className="group flex items-baseline gap-2.5">
@@ -94,11 +97,31 @@ function Shell({
         </div>
       </header>
 
-      {!viewer.isMember && (
-        <p className="mb-4 rounded-2xl border border-linen-edge bg-white/60 px-4 py-2.5 text-xs text-espresso-soft">
-          👀 You&apos;re viewing the public board. Logging, nudges and penalties are members-only.
-        </p>
-      )}
+      {/* Three distinct states. Signed-in-but-not-a-member used to look
+          identical to signed-out, which made a setup step look like a bug. */}
+      {!viewer.isMember &&
+        (viewer.id ? (
+          <div className="mb-4 rounded-2xl border border-terracotta/35 bg-terracotta-soft/50 px-4 py-3 text-xs">
+            <p className="font-medium text-terracotta">
+              Signed in, but not set up as a member yet.
+            </p>
+            <p className="mt-1 text-espresso-soft">
+              That is why nothing is editable. Both of you need a row in{' '}
+              <code className="rounded bg-white/70 px-1">profiles</code> with{' '}
+              <code className="rounded bg-white/70 px-1">is_member = true</code> — run{' '}
+              <code className="rounded bg-white/70 px-1">supabase/seed.sql</code> with your two
+              emails in it, then reload.
+            </p>
+          </div>
+        ) : (
+          <p className="mb-4 rounded-2xl border border-linen-edge bg-white/60 px-4 py-2.5 text-xs text-espresso-soft">
+            👀 You&apos;re viewing the public board.{' '}
+            <Link href="/login" className="font-medium underline decoration-gold-soft underline-offset-2">
+              Sign in
+            </Link>{' '}
+            to log turns, add plans and rate your day.
+          </p>
+        ))}
 
       <main className="flex-1">{children}</main>
 
@@ -128,7 +151,7 @@ function Shell({
                     <Icon />
                   </span>
                   {label}
-                  {href === '/ledger' && openPenalties > 0 && (
+                  {href === '/compensation' && openPenalties > 0 && (
                     <span className="absolute right-2 top-1 grid h-4 min-w-4 place-items-center rounded-full
                                      bg-terracotta px-1 text-[10px] font-semibold text-white sm:static sm:ml-1">
                       {openPenalties}
@@ -183,6 +206,14 @@ function DealIcon() {
       <path d="M4 7h7l2 2h7" />
       <path d="M20 9v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7" />
       <path d="M9 14h6" />
+    </svg>
+  )
+}
+
+function WishIcon() {
+  return (
+    <svg {...svg}>
+      <path d="M12 20.5 4.8 13.6a4.4 4.4 0 0 1 6.2-6.2l1 1 1-1a4.4 4.4 0 0 1 6.2 6.2Z" />
     </svg>
   )
 }

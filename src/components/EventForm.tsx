@@ -7,7 +7,7 @@ import { WhatsAppGlyph } from './DealCard'
 import { Avatar, Button, cx, Sheet, Toast, useViewer } from './ui'
 import { format } from '@/lib/dates'
 import { WEEKDAY_LABELS } from '@/lib/recurrence'
-import type { Profile } from '@/lib/types'
+import { EVENT_LABELS, type EventLabel, type Profile } from '@/lib/types'
 
 type Freq = 'none' | 'daily' | 'weekly' | 'monthly'
 type EndMode = 'never' | 'until' | 'count'
@@ -52,6 +52,7 @@ export function EventForm({
   const [location, setLocation] = useState('')
   const [description, setDescription] = useState('')
 
+  const [label, setLabel] = useState<EventLabel>('camel')
   const [freq, setFreq] = useState<Freq>('none')
   const [interval, setInterval] = useState('1')
   const [byweekday, setByweekday] = useState<number[]>([])
@@ -74,6 +75,7 @@ export function EventForm({
           ends_at: !allDay && endTime ? `${date}T${endTime}` : null,
           kind: owner ? 'personal' : 'shared',
           owner_id: owner,
+          label,
           recurrence:
             freq === 'none'
               ? null
@@ -224,6 +226,41 @@ export function EventForm({
               </div>
             </div>
           )}
+
+          {/* --- colour label --- */}
+          <div>
+            <span className="label mb-1.5">Label</span>
+            <div className="flex flex-wrap gap-1.5">
+              {EVENT_LABELS.map((l) => {
+                const active = label === l.value
+                return (
+                  <button
+                    key={l.value}
+                    type="button"
+                    onClick={() => setLabel(l.value)}
+                    aria-pressed={active}
+                    title={l.name}
+                    className={cx(
+                      'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs transition',
+                      active
+                        ? 'border-espresso/25 font-medium shadow-card'
+                        : 'border-linen-edge bg-white/60 hover:border-camel',
+                    )}
+                    style={active ? { background: `${l.hex}26` } : undefined}
+                  >
+                    <span
+                      aria-hidden
+                      className="h-3 w-3 rounded-full ring-1 ring-inset ring-black/10"
+                      style={{ background: l.hex }}
+                    />
+                    {/* The name, not just the swatch — colour alone should
+                        never be the only way to tell these apart. */}
+                    {l.name}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
 
           {/* --- repeat --- */}
           <div className="rounded-2xl border border-linen-edge bg-linen-deep/40 p-3">

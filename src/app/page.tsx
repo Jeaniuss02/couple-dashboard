@@ -1,35 +1,47 @@
 import Link from 'next/link'
 
+import { BoardCharts } from '@/components/BoardCharts'
+import { Countdown } from '@/components/Countdown'
 import { DealList } from '@/components/DealList'
 import { SectionHeading } from '@/components/ui'
 import { getViewer } from '@/lib/auth'
 import {
   getDeals,
+  getLogsInRange,
+  getMembers,
+  getMoods,
   getPenalties,
   getRecentLogs,
-  getMembers,
+  getSettings,
   getUpcomingEvents,
   membersPair,
   nameLookup,
 } from '@/lib/data'
 import { format, formatEventTime, relative, toDate } from '@/lib/dates'
 import { isOverdue } from '@/lib/rotation'
+import { LABEL_HEX } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
-  const [viewer, members, deals, events, logs, penalties] = await Promise.all([
-    getViewer(),
-    getMembers(),
-    getDeals(),
-    getUpcomingEvents(4),
-    getRecentLogs(6),
-    getPenalties(),
-  ])
+  const now = new Date()
+  const chartFrom = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30)
+
+  const [viewer, members, deals, events, logs, penalties, chartLogs, moods, settings] =
+    await Promise.all([
+      getViewer(),
+      getMembers(),
+      getDeals(),
+      getUpcomingEvents(4),
+      getRecentLogs(8),
+      getPenalties(),
+      getLogsInRange(chartFrom, new Date(now.getTime() + 86_400_000)),
+      getMoods(chartFrom, now),
+      getSettings(),
+    ])
 
   const pair = membersPair(members)
   const nameOf = nameLookup(members)
-  const now = new Date()
   const overdueCount = deals.filter((d) => isOverdue(d, now)).length
   const openPenalties = penalties.filter((p) => p.status === 'open')
 
@@ -56,12 +68,17 @@ export default async function DashboardPage() {
         </p>
       </section>
 
+      <Countdown
+        date={settings?.anniversary_date ?? null}
+        label={settings?.anniversary_label ?? 'Our anniversary'}
+      />
+
       <section>
         <SectionHeading
           title="Turns & routines"
           hint="One tap logs it and moves the state on."
           action={
-            <Link href="/deals" className="text-xs font-medium text-espresso-soft hover:text-espresso">
+            <Link href="/tasks" className="text-xs font-medium text-espresso-soft hover:text-espresso">
               Manage →
             </Link>
           }
@@ -69,14 +86,19 @@ export default async function DashboardPage() {
         <DealList deals={deals} members={members} pair={pair} viewerId={viewer.id} />
       </section>
 
+      <BoardCharts logs={chartLogs} moods={moods} members={members} />
+
       {openPenalties.length > 0 && (
         <section>
           <SectionHeading
-            title="Owed"
+            title="Compensation"
             hint={`${openPenalties.length} outstanding`}
             action={
-              <Link href="/ledger" className="text-xs font-medium text-espresso-soft hover:text-espresso">
-                Ledger →
+              <Link
+                href="/compensation"
+                className="text-xs font-medium text-espresso-soft hover:text-espresso"
+              >
+                See all →
               </Link>
             }
           />
@@ -123,13 +145,14 @@ export default async function DashboardPage() {
                   <span
                     aria-hidden
                     className="h-8 w-1 shrink-0 rounded-full"
-                    style={{ background: owner?.color ?? '#D4AF37' }}
+                    style={{ background: LABEL_HEX[event.label] ?? '#C19A6B' }}
                   />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium">{event.title}</span>
                     <span className="text-xs text-espresso-faint">
                       {format(toDate(event.starts_at), 'EEE d MMM')} · {formatEventTime(event)}
                       {owner ? ` · ${owner.display_name}` : ' · together'}
+                      {event.series_id ? ' · repeats' : ''}
                     </span>
                   </span>
                 </li>
@@ -139,28 +162,34 @@ export default async function DashboardPage() {
         )}
       </section>
 
+      {/* History — who did what, when. */}
       <section>
-        <SectionHeading title="Recently logged" />
+        <SectionHeading title="History" hint="Every turn that got logged" />
         {logs.length === 0 ? (
           <p className="text-sm text-espresso-faint">No activity yet.</p>
         ) : (
           <ol className="relative space-y-3 border-l border-linen-edge pl-4">
-            {logs.map((log) => (
-              <li key={log.id} className="text-sm">
-                <span
-                  aria-hidden
-                  className="absolute -left-[4.5px] mt-1.5 h-2 w-2 rounded-full bg-olive"
-                />
-                <span className="font-medium">{nameOf(log.completed_by)}</span>{' '}
-                <span className="text-espresso-soft">did {log.step_label.toLowerCase()}</span>
-                {log.was_takeover && (
-                  <span className="ml-1.5 text-xs text-terracotta">(covered)</span>
-                )}
-                <span className="block text-xs text-espresso-faint">
-                  {relative(log.completed_at, now)}
-                </span>
-              </li>
-            ))}
+            {logs.map((log) => {
+              const who = members.find((m) => m.id === log.completed_by)
+              return (
+                <li key={log.id} className="text-sm">
+                  <span
+                    aria-hidden
+                    className="absolute -left-[4.5px] mt-1.5 h-2 w-2 rounded-full"
+                    style={{ background: who?.color ?? '#8F9779' }}
+                  />
+                  <span className="font-medium">{nameOf(log.completed_by)}</span>{' '}
+                  <span className="text-espresso-soft">did {log.step_label.toLowerCase()}</span>
+                  {log.was_takeover && (
+                    <span className="ml-1.5 text-xs text-terracotta">(covered)</span>
+                  )}
+                  <span className="block text-xs text-espresso-faint">
+                    {format(toDate(log.completed_at), 'EEE d MMM, h:mm a')} ·{' '}
+                    {relative(log.completed_at, now)}
+                  </span>
+                </li>
+              )
+            })}
           </ol>
         )}
       </section>

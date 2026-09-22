@@ -40,12 +40,12 @@ export function DealsManager({
   return (
     <div className="space-y-8">
       <SectionHeading
-        title="Your deals"
-        hint="Custom agreements, rotation rules and stakes."
+        title="Your tasks"
+        hint="Who does what, how it rotates, and what it costs to flake."
         action={
           <MemberOnly>
             <Button variant="primary" size="sm" onClick={() => setBuilding(true)}>
-              + New deal
+              + New task
             </Button>
           </MemberOnly>
         }
@@ -54,7 +54,7 @@ export function DealsManager({
       {active.length === 0 ? (
         <EmptyState
           emoji="🤝"
-          title="No deals yet"
+          title="No tasks yet"
           hint="Start with the one you argue about most."
         />
       ) : (

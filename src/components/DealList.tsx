@@ -41,7 +41,7 @@ export function DealList({
     return (
       <EmptyState
         emoji="🫧"
-        title="No deals yet"
+        title="No tasks yet"
         hint="Create one and the board starts keeping score for you."
       />
     )

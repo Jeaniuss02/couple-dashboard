@@ -22,6 +22,7 @@ function series(over: Partial<EventSeries> & Pick<EventSeries, 'freq'>): EventSe
     duration_minutes: 90,
     all_day: false,
     kind: 'shared',
+    label: 'camel',
     owner_id: null,
     created_by: 'ava',
     timezone: KL,

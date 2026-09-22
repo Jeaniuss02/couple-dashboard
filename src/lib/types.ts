@@ -80,6 +80,7 @@ export interface CalendarEvent {
   ends_at: string | null
   all_day: boolean
   kind: EventKind
+  label: EventLabel
   owner_id: string | null
   created_by: string | null
   notified_at: string | null
@@ -100,6 +101,7 @@ export interface EventSeries {
   duration_minutes: number | null
   all_day: boolean
   kind: EventKind
+  label: EventLabel
   owner_id: string | null
   created_by: string | null
   /** The zone the rule is expressed in — what keeps 9am at 9am across DST. */
@@ -169,6 +171,8 @@ export interface AppSettings {
   quiet_hours_start: number | null
   quiet_hours_end: number | null
   timezone: string
+  anniversary_date: string | null
+  anniversary_label: string
 }
 
 /** Who is looking at the board right now. */
@@ -179,3 +183,67 @@ export interface Viewer {
 }
 
 export const VISITOR: Viewer = { id: null, isMember: false, profile: null }
+
+// ---------------------------------------------------------------------------
+// Event colour labels
+// ---------------------------------------------------------------------------
+export type EventLabel =
+  | 'gold' | 'camel' | 'terracotta' | 'olive' | 'blush' | 'plum' | 'sky' | 'sand'
+
+/** The eight label colours, in picker order. Hex lives here so the calendar,
+ *  the picker and the legend can never disagree. */
+export const EVENT_LABELS: { value: EventLabel; hex: string; name: string }[] = [
+  { value: 'gold',       hex: '#D4AF37', name: 'Celebrate' },
+  { value: 'blush',      hex: '#D9A6A0', name: 'Us' },
+  { value: 'terracotta', hex: '#C97A63', name: 'Important' },
+  { value: 'camel',      hex: '#C19A6B', name: 'Everyday' },
+  { value: 'olive',      hex: '#8F9779', name: 'Easy' },
+  { value: 'sky',        hex: '#7C98A6', name: 'Work' },
+  { value: 'plum',       hex: '#8E7A8F', name: 'Personal' },
+  { value: 'sand',       hex: '#C4B5A0', name: 'Someday' },
+]
+
+export const LABEL_HEX: Record<EventLabel, string> = Object.fromEntries(
+  EVENT_LABELS.map((l) => [l.value, l.hex]),
+) as Record<EventLabel, string>
+
+// ---------------------------------------------------------------------------
+// Mood
+// ---------------------------------------------------------------------------
+export type MoodScope = 'day' | 'week'
+
+export interface MoodEntry {
+  id: string
+  profile_id: string
+  entry_date: string
+  scope: MoodScope
+  score: number
+  note: string | null
+  created_at: string
+}
+
+/** 1 rough - 5 wonderful. Faces carry the meaning; colour only reinforces it. */
+export const MOOD_SCALE: { score: number; emoji: string; label: string; hex: string }[] = [
+  { score: 1, emoji: '😔', label: 'Rough', hex: '#C97A63' },
+  { score: 2, emoji: '😕', label: 'Meh', hex: '#C4A38F' },
+  { score: 3, emoji: '🙂', label: 'Okay', hex: '#C4B5A0' },
+  { score: 4, emoji: '😊', label: 'Good', hex: '#A9AE8A' },
+  { score: 5, emoji: '🥰', label: 'Wonderful', hex: '#8F9779' },
+]
+
+// ---------------------------------------------------------------------------
+// Wishlist
+// ---------------------------------------------------------------------------
+export interface WishlistItem {
+  id: string
+  title: string
+  note: string | null
+  target_date: string | null
+  owner_id: string | null
+  status: 'open' | 'done'
+  done_at: string | null
+  sort_order: number
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}

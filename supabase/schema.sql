@@ -425,3 +425,30 @@ do $$ begin
   alter publication supabase_realtime add table public.event_series;
   alter publication supabase_realtime add table public.event_exceptions;
 exception when duplicate_object then null; end $$;
+
+-- ---------------------------------------------------------------------------
+-- kisses — one row per tap of the raised heart button in the bottom bar.
+-- A row per tap (not a counter column) so the history is the point and undo
+-- is a delete rather than a decrement that can drift.
+-- ---------------------------------------------------------------------------
+create table if not exists public.kisses (
+  id         uuid primary key default gen_random_uuid(),
+  logged_by  uuid references public.profiles (id) on delete set null,
+  kissed_at  timestamptz not null default now()
+);
+
+create index if not exists kisses_kissed_at_idx on public.kisses (kissed_at desc);
+
+alter table public.kisses enable row level security;
+
+-- Board content: world-readable, member-writable — the same shape as deals.
+drop policy if exists kisses_public_read on public.kisses;
+create policy kisses_public_read on public.kisses for select using (true);
+
+drop policy if exists kisses_member_write on public.kisses;
+create policy kisses_member_write on public.kisses
+  for all using (public.is_member()) with check (public.is_member());
+
+do $$ begin
+  alter publication supabase_realtime add table public.kisses;
+exception when duplicate_object then null; end $$;

@@ -80,6 +80,7 @@ export function useRealtimeRefresh(
     'penalties',
     'event_series',
     'event_exceptions',
+    'kisses',
   ],
 ) {
   const router = useRouter()

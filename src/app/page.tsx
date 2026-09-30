@@ -3,10 +3,12 @@ import Link from 'next/link'
 import { BoardCharts } from '@/components/BoardCharts'
 import { Countdown } from '@/components/Countdown'
 import { DealList } from '@/components/DealList'
+import { TodayCard } from '@/components/TodayCard'
 import { SectionHeading } from '@/components/ui'
 import { getViewer } from '@/lib/auth'
 import {
   getDeals,
+  getKissStats,
   getLogsInRange,
   getMembers,
   getMoods,
@@ -18,7 +20,6 @@ import {
   nameLookup,
 } from '@/lib/data'
 import { format, formatEventTime, relative, toDate } from '@/lib/dates'
-import { isOverdue } from '@/lib/rotation'
 import { LABEL_HEX } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
@@ -27,7 +28,7 @@ export default async function DashboardPage() {
   const now = new Date()
   const chartFrom = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30)
 
-  const [viewer, members, deals, events, logs, penalties, chartLogs, moods, settings] =
+  const [viewer, members, deals, events, logs, penalties, chartLogs, moods, settings, kissStats] =
     await Promise.all([
       getViewer(),
       getMembers(),
@@ -38,35 +39,18 @@ export default async function DashboardPage() {
       getLogsInRange(chartFrom, new Date(now.getTime() + 86_400_000)),
       getMoods(chartFrom, now),
       getSettings(),
+      getKissStats(),
     ])
 
   const pair = membersPair(members)
   const nameOf = nameLookup(members)
-  const overdueCount = deals.filter((d) => isOverdue(d, now)).length
   const openPenalties = penalties.filter((p) => p.status === 'open')
 
   return (
     <div className="space-y-8">
-      <section>
-        <p className="text-xs uppercase tracking-[0.14em] text-espresso-faint">
-          {format(now, 'EEEE d MMMM')}
-        </p>
-        <h1 className="mt-1 text-2xl sm:text-3xl">
-          {overdueCount > 0 ? (
-            <>
-              <span className="text-terracotta">{overdueCount}</span> thing
-              {overdueCount === 1 ? '' : 's'} slipped
-            </>
-          ) : (
-            'Everything’s square.'
-          )}
-        </h1>
-        <p className="mt-1.5 text-sm text-espresso-soft">
-          {overdueCount > 0
-            ? 'Tap to log it, nudge them, or call it out.'
-            : 'Nothing overdue. Log a turn whenever it happens.'}
-        </p>
-      </section>
+      {/* Above the fold on a phone: the date, whose turn it is, the one-tap
+          button, and the kiss tally. Everything else is detail below it. */}
+      <TodayCard deals={deals} members={members} pair={pair} stats={kissStats} />
 
       <Countdown
         date={settings?.anniversary_date ?? null}

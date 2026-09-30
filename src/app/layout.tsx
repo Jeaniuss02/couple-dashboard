@@ -3,7 +3,7 @@ import { Fraunces, Inter } from 'next/font/google'
 
 import { AppShell } from '@/components/AppShell'
 import { getViewer } from '@/lib/auth'
-import { getMembers, getPenalties } from '@/lib/data'
+import { getKissStats, getMembers, getPenalties } from '@/lib/data'
 import './globals.css'
 
 // These feed the --font-display / --font-sans tokens declared in globals.css,
@@ -35,13 +35,23 @@ export const viewport: Viewport = {
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const [viewer, members, penalties] = await Promise.all([getViewer(), getMembers(), getPenalties()])
+  const [viewer, members, penalties, kissStats] = await Promise.all([
+    getViewer(),
+    getMembers(),
+    getPenalties(),
+    getKissStats(),
+  ])
   const openPenalties = penalties.filter((p) => p.status === 'open').length
 
   return (
     <html lang="en" className={`${display.variable} ${body.variable}`}>
       <body>
-        <AppShell viewer={viewer} members={members} openPenalties={openPenalties}>
+        <AppShell
+          viewer={viewer}
+          members={members}
+          openPenalties={openPenalties}
+          kissStats={kissStats}
+        >
           {children}
         </AppShell>
       </body>

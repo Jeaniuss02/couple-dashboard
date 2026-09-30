@@ -7,34 +7,41 @@ import type { ReactNode } from 'react'
 import dynamic from 'next/dynamic'
 
 import { HeartsBackground } from './HeartsBackground'
+import { KissButton } from './KissButton'
 import { Avatar, cx, useViewer, ViewerProvider } from './ui'
-import type { Profile, Viewer } from '@/lib/types'
+import type { KissStats, Profile, Viewer } from '@/lib/types'
 
 // Browser-only: a realtime subscription has nothing to do during SSR.
 const RealtimeSync = dynamic(() => import('./RealtimeSync'), { ssr: false })
 
+/**
+ * `short` is what fits in the phone bar — six slots including the raised kiss
+ * button leaves about 60px each, so the long labels are desktop-only.
+ */
 const NAV = [
-  { href: '/', label: 'Board', icon: HomeIcon },
-  { href: '/calendar', label: 'Calendar', icon: CalendarIcon },
-  { href: '/tasks', label: 'Tasks', icon: DealIcon },
-  { href: '/compensation', label: 'Compensation', icon: LedgerIcon },
-  { href: '/wishlist', label: 'Wishes', icon: WishIcon },
+  { href: '/', label: 'Board', short: 'Board', icon: HomeIcon },
+  { href: '/calendar', label: 'Calendar', short: 'Calendar', icon: CalendarIcon },
+  { href: '/tasks', label: 'Tasks', short: 'Tasks', icon: DealIcon },
+  { href: '/compensation', label: 'Compensation', short: 'Owed', icon: LedgerIcon },
+  { href: '/wishlist', label: 'Wishes', short: 'Wishes', icon: WishIcon },
 ]
 
 export function AppShell({
   viewer,
   members,
   openPenalties,
+  kissStats,
   children,
 }: {
   viewer: Viewer
   members: Profile[]
   openPenalties: number
+  kissStats: KissStats
   children: ReactNode
 }) {
   return (
     <ViewerProvider viewer={viewer}>
-      <Shell members={members} openPenalties={openPenalties}>
+      <Shell members={members} openPenalties={openPenalties} kissStats={kissStats}>
         {children}
       </Shell>
     </ViewerProvider>
@@ -44,17 +51,19 @@ export function AppShell({
 function Shell({
   members,
   openPenalties,
+  kissStats,
   children,
 }: {
   members: Profile[]
   openPenalties: number
+  kissStats: KissStats
   children: ReactNode
 }) {
   const viewer = useViewer()
   const pathname = usePathname()
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-3xl flex-col px-4 pb-24 sm:px-6 sm:pb-10">
+    <div className="mx-auto flex min-h-dvh max-w-3xl flex-col px-4 pb-32 sm:px-6 sm:pb-10">
       <HeartsBackground />
       <RealtimeSync />
       <header className="flex items-center justify-between gap-3 py-5 sm:py-7">
@@ -125,48 +134,77 @@ function Shell({
 
       <main className="flex-1">{children}</main>
 
-      {/* Bottom bar on phones, inline rail on desktop. */}
+      {/* Bottom bar on phones, inline rail on desktop. The middle slot is the
+          kiss counter, raised out of the bar so a thumb finds it without
+          looking — which is the entire point of a one-tap counter. */}
       <nav
         aria-label="Sections"
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-linen-edge bg-linen/90 px-4 py-2
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-linen-edge bg-linen/95 px-1 pt-2
                    backdrop-blur-md sm:static sm:mt-10 sm:rounded-2xl sm:border sm:bg-white/60 sm:px-2"
       >
         <ul className="mx-auto flex max-w-3xl items-stretch justify-between sm:justify-start sm:gap-1">
-          {NAV.map(({ href, label, icon: Icon }) => {
-            const active = href === '/' ? pathname === '/' : pathname.startsWith(href)
-            return (
-              <li key={href} className="flex-1 sm:flex-none">
-                <Link
-                  href={href}
-                  aria-current={active ? 'page' : undefined}
-                  className={cx(
-                    'relative flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-[11px] font-medium transition',
-                    'sm:flex-row sm:gap-2 sm:px-4 sm:text-sm',
-                    active
-                      ? 'text-espresso'
-                      : 'text-espresso-faint hover:text-espresso-soft',
-                  )}
-                >
-                  <span className={cx('transition', active && 'text-gold-deep')}>
-                    <Icon />
-                  </span>
-                  {label}
-                  {href === '/compensation' && openPenalties > 0 && (
-                    <span className="absolute right-2 top-1 grid h-4 min-w-4 place-items-center rounded-full
-                                     bg-terracotta px-1 text-[10px] font-semibold text-white sm:static sm:ml-1">
-                      {openPenalties}
-                    </span>
-                  )}
-                  {active && (
-                    <span className="absolute -bottom-0.5 h-0.5 w-6 rounded-full bg-gold sm:hidden" />
-                  )}
-                </Link>
-              </li>
-            )
-          })}
+          {NAV.slice(0, 2).map((entry) => (
+            <NavItem key={entry.href} entry={entry} pathname={pathname} openPenalties={openPenalties} />
+          ))}
+
+          <li className="relative flex w-[68px] shrink-0 justify-center sm:w-auto sm:flex-none sm:px-1">
+            <div className="-mt-9 sm:mt-0">
+              <KissButton stats={kissStats} />
+            </div>
+          </li>
+
+          {NAV.slice(2).map((entry) => (
+            <NavItem key={entry.href} entry={entry} pathname={pathname} openPenalties={openPenalties} />
+          ))}
         </ul>
+
+        {/* Keeps the bar clear of the iPhone home indicator. */}
+        <div aria-hidden className="h-[env(safe-area-inset-bottom)] sm:hidden" />
       </nav>
     </div>
+  )
+}
+
+function NavItem({
+  entry,
+  pathname,
+  openPenalties,
+}: {
+  entry: (typeof NAV)[number]
+  pathname: string
+  openPenalties: number
+}) {
+  const { href, label, short, icon: Icon } = entry
+  const active = href === '/' ? pathname === '/' : pathname.startsWith(href)
+
+  return (
+    <li className="min-w-0 flex-1 sm:flex-none">
+      <Link
+        href={href}
+        aria-current={active ? 'page' : undefined}
+        className={cx(
+          'relative flex flex-col items-center gap-1 rounded-xl px-1 py-2 text-[10px] font-medium transition',
+          'sm:flex-row sm:gap-2 sm:px-4 sm:text-sm',
+          active ? 'text-espresso' : 'text-espresso-faint hover:text-espresso-soft',
+        )}
+      >
+        <span className={cx('transition', active && 'text-gold-deep')}>
+          <Icon />
+        </span>
+        {/* Long labels would collide at phone width with six slots. */}
+        <span className="sm:hidden">{short}</span>
+        <span className="hidden sm:inline">{label}</span>
+        {href === '/compensation' && openPenalties > 0 && (
+          <span className="absolute right-0.5 top-1 grid h-4 min-w-4 place-items-center rounded-full
+                           bg-terracotta px-1 text-[10px] font-semibold text-white sm:static sm:ml-1">
+            {openPenalties}
+          </span>
+        )}
+        {active && (
+          <span className="absolute -bottom-0.5 h-0.5 w-6 rounded-full bg-gold sm:hidden" />
+        )}
+      </Link>
+    </li>
   )
 }
 

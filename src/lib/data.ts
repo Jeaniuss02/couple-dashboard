@@ -9,12 +9,15 @@ import type {
   DealWithSteps,
   EventException,
   EventSeries,
+  KissRow,
+  KissStats,
   MessageTemplate,
   MoodEntry,
   Penalty,
   Profile,
   WishlistItem,
 } from '@/lib/types'
+import { buildKissStats, EMPTY_KISS_STATS, kissWeekRange } from '@/lib/kisses'
 import { expandAll } from '@/lib/recurrence'
 import type { Members } from '@/lib/rotation'
 
@@ -148,6 +151,30 @@ export async function getWishlist(): Promise<WishlistItem[]> {
     .order('target_date', { nullsFirst: false })
     .order('created_at', { ascending: false })
   return (data ?? []) as WishlistItem[]
+}
+
+/**
+ * This week's kisses plus the all-time total.
+ *
+ * Degrades instead of throwing when the `kisses` table is missing: the code
+ * ships before the SQL sometimes does, and a missing counter must not take the
+ * whole dashboard down with it.
+ */
+export async function getKissStats(): Promise<KissStats> {
+  const supabase = createClient()
+  const { from } = kissWeekRange()
+
+  const [week, allTime] = await Promise.all([
+    supabase
+      .from('kisses')
+      .select('id, logged_by, kissed_at')
+      .gte('kissed_at', from.toISOString())
+      .order('kissed_at', { ascending: false }),
+    supabase.from('kisses').select('id', { count: 'exact', head: true }),
+  ])
+
+  if (week.error) return EMPTY_KISS_STATS
+  return buildKissStats((week.data ?? []) as KissRow[], allTime.count ?? 0)
 }
 
 export async function getTemplates(): Promise<MessageTemplate[]> {

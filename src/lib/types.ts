@@ -247,3 +247,25 @@ export interface WishlistItem {
   created_at: string
   updated_at: string
 }
+
+// ---------------------------------------------------------------------------
+// Kisses
+// ---------------------------------------------------------------------------
+/** One row per tap of the raised button in the middle of the bottom bar. */
+export interface KissRow {
+  id: string
+  logged_by: string | null
+  kissed_at: string
+}
+
+/** Everything the Today card and the bottom bar need, in one read. */
+export interface KissStats {
+  /** False until the kisses migration has run — the UI hides itself. */
+  available: boolean
+  today: number
+  week: number
+  total: number
+  /** Seven entries, oldest first, ending with today. */
+  days: { key: string; label: string; count: number }[]
+  last: { at: string; by: string | null } | null
+}

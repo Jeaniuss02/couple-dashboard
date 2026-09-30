@@ -117,6 +117,9 @@ visitor gets a clear 403 rather than a confusing empty result.
 | `POST /api/phone/confirm` | Check the code, promote the number | — |
 | `GET/DELETE /api/phone` | Read state / remove number or abandon a challenge | — |
 | `POST /api/whatsapp/test` | Prove the chain end to end | → you or both |
+| `POST /api/kisses` | One tap = one kiss | — |
+| `DELETE /api/kisses` | Undo today's most recent kiss | — |
+| `GET /api/kisses` | Today / this week / the seven-day strip | — |
 
 **Failure policy:** the database write commits before dispatch, and `notify()`
 never throws. A WhatsApp outage can't roll back a calendar event you already
@@ -209,6 +212,34 @@ Four decisions worth knowing:
 
 Deleting a recurring occurrence asks which you meant: this one, this and all
 later, or the whole series.
+
+---
+
+### 4c. Kisses
+
+The one button that is not about chores. It sits in the middle of the bottom
+bar, raised above the bar itself, because on a phone it should be findable with
+a thumb without looking.
+
+- **Tap = one row.** `kisses` stores a row per tap (`logged_by`, `kissed_at`)
+  rather than a counter column, so the history is the source of truth and the
+  undo is a delete rather than a decrement that can drift.
+- **Hold (550ms) = undo today's last one.** The mistake a counter actually
+  invites is a double tap; holding the same button beats hunting for a delete
+  control at 11pm.
+- **"Today" means today in Kuala Lumpur.** Vercel renders in UTC, so a kiss at
+  9am Monday KL would otherwise land on Sunday. `lib/kisses.ts` computes the day
+  and week boundaries as `TZDate` wall-clock midnights and converts back to
+  instants; `kisses.test.ts` covers each rollover.
+- **Week = Monday–Sunday**, matching the calendar's `WEEK_STARTS_ON`.
+- **Missing table = hidden UI, not a crash.** `getKissStats()` returns
+  `available: false` when the `kisses` relation is absent, so the counter can
+  ship before the SQL is applied.
+
+The Today card shows today, this week, all time and a seven-bar strip of the
+last week. Read is public like the rest of the board; writes are `is_member()`.
+Flip `kisses_public_read` to `using (public.is_member())` if the counter should
+stay between the two of them.
 
 ---
 

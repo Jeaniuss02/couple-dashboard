@@ -15,14 +15,14 @@ import type { KissStats, Profile, Viewer } from '@/lib/types'
 const RealtimeSync = dynamic(() => import('./RealtimeSync'), { ssr: false })
 
 /**
- * `short` is what fits in the phone bar — six slots including the raised kiss
- * button leaves about 60px each, so the long labels are desktop-only.
+ * `short` is what fits in the phone bar. Five buttons total — four sections
+ * plus the raised kiss button in the middle — so there is room for the real
+ * labels on a phone, and the long ones only differ on the desktop rail.
  */
 const NAV = [
   { href: '/', label: 'Board', short: 'Board', icon: HomeIcon },
   { href: '/calendar', label: 'Calendar', short: 'Calendar', icon: CalendarIcon },
   { href: '/tasks', label: 'Tasks', short: 'Tasks', icon: DealIcon },
-  { href: '/compensation', label: 'Compensation', short: 'Owed', icon: LedgerIcon },
   { href: '/wishlist', label: 'Wishes', short: 'Wishes', icon: WishIcon },
 ]
 
@@ -191,10 +191,13 @@ function NavItem({
         <span className={cx('transition', active && 'text-gold-deep')}>
           <Icon />
         </span>
-        {/* Long labels would collide at phone width with six slots. */}
+        {/* Long labels would collide at phone width. */
+        }
         <span className="sm:hidden">{short}</span>
         <span className="hidden sm:inline">{label}</span>
-        {href === '/compensation' && openPenalties > 0 && (
+        {/* The compensation ledger lives inside Tasks now, so the badge rides
+            along with that tab. */}
+        {href === '/tasks' && openPenalties > 0 && (
           <span className="absolute right-0.5 top-1 grid h-4 min-w-4 place-items-center rounded-full
                            bg-terracotta px-1 text-[10px] font-semibold text-white sm:static sm:ml-1">
             {openPenalties}
@@ -252,14 +255,6 @@ function WishIcon() {
   return (
     <svg {...svg}>
       <path d="M12 20.5 4.8 13.6a4.4 4.4 0 0 1 6.2-6.2l1 1 1-1a4.4 4.4 0 0 1 6.2 6.2Z" />
-    </svg>
-  )
-}
-
-function LedgerIcon() {
-  return (
-    <svg {...svg}>
-      <path d="M12 3v18M7 7h10M5 12h14M7 17h10" />
     </svg>
   )
 }

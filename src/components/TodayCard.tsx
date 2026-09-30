@@ -122,14 +122,38 @@ export function TodayCard({
                     )}
                   </div>
 
-                  <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-                    {assignee ? (
-                      <Avatar profile={assignee} size={22} showName />
-                    ) : (
-                      <span className="text-espresso-soft">either of you</span>
-                    )}
-                    <span className="text-espresso-soft">{turn.headline(nameOf)}</span>
+                  <div className="mt-2.5 flex items-center gap-2">
+                    {assignee && <Avatar profile={assignee} size={26} />}
+                    <p className="text-sm text-espresso-soft">
+                      {deal.rotation_type === 'adhoc' ? (
+                        'Today either of you can log it'
+                      ) : (
+                        <>
+                          Today it&apos;s{' '}
+                          <span className="font-display text-lg font-semibold text-espresso">
+                            {assignee ? assignee.display_name : nameOf(turn.assigneeId)}
+                          </span>
+                          &apos;s turn
+                        </>
+                      )}
+                    </p>
                   </div>
+
+                  {/* What the turn actually is — "wash the dishes", not just
+                      whose name is on it. */}
+                  {turn.assigneeId && (
+                    <p className="mt-1 text-sm text-espresso-soft">
+                      <span aria-hidden className="mr-1">
+                        👉
+                      </span>
+                      {turn.stepLabel}
+                      {turn.status === 'overdue' && (
+                        <span className="ml-1.5 text-xs font-medium text-terracotta">
+                          (still waiting)
+                        </span>
+                      )}
+                    </p>
+                  )}
 
                   <MemberOnly
                     fallback={

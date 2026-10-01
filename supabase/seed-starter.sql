@@ -64,6 +64,14 @@ declare
   dish uuid;
   laundry uuid;
 begin
+  -- Idempotent: the promotions, templates and settings above all upsert, so
+  -- re-running this file is safe — but sample deals would be duplicated, so
+  -- they are skipped once the board has any deal at all.
+  if exists (select 1 from public.deals) then
+    raise notice 'Sample deals already present — skipping.';
+    return;
+  end if;
+
   select id into a from public.profiles where is_member order by created_at limit 1;
   select id into b from public.profiles where is_member and id <> a order by created_at limit 1;
   if a is null or b is null then

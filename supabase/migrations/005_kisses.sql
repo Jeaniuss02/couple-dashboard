@@ -1,5 +1,5 @@
 -- ===========================================================================
--- 004 — kisses
+-- 005 — kisses
 --
 -- One row per kiss. A row-per-tap (rather than a daily counter column) means
 -- the history is an audit trail: who kissed whom at what time, and a mis-tap

@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="Our Board">
+  <title>Our Board</title>
+  <defs>
+    <radialGradient id="tile" cx="42%" cy="20%" r="94%">
+      <stop offset="0%" stop-color="#FFFDF9"/>
+      <stop offset="50%" stop-color="#F4ECE0"/>
+      <stop offset="100%" stop-color="#E4D6BC"/>
+    </radialGradient>
+
+    <!-- Four stops: a bright edge, a saturated middle, a warm deep end. The
+         bright and dark ends are what read as "gold"; the mid-tone alone just
+         reads as yellow paint. -->
+    <linearGradient id="gold" x1="14%" y1="2%" x2="84%" y2="100%">
+      <stop offset="0%" stop-color="#F9E7A6"/>
+      <stop offset="16%" stop-color="#E9CD6D"/>
+      <stop offset="42%" stop-color="#D6B13C"/>
+      <stop offset="74%" stop-color="#C09434"/>
+      <stop offset="100%" stop-color="#A57C2B"/>
+    </linearGradient>
+
+    <!-- One pass of sheen along the light direction, so the mark reads as a
+         material rather than a flat swatch. -->
+    <linearGradient id="sheen" x1="18%" y1="0%" x2="62%" y2="72%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.42"/>
+      <stop offset="46%" stop-color="#FFFFFF" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Layered: a tight contact shadow that grounds the mark, plus a wide
+         ambient one. Warm-tinted, because neutral black over cream reads as
+         dirt. -->
+    <filter id="lift" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="5" stdDeviation="4" flood-color="#5A3E1C" flood-opacity="0.18"/>
+      <feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#5A3E1C" flood-opacity="0.08"/>
+    </filter>
+
+    <!-- A single unbroken heart, drawn wide with a deep cleft and a sharp
+         point, and sized to fill the tile: it still has to read at 32px in a
+         browser tab, so nothing here is decorative detail. -->
+    <path id="heart" d="M512,810
+      C512,810 160,610 160,414
+      C160,310 240,220 336,220
+      C412,220 470,264 512,340
+      C554,264 612,220 688,220
+      C784,220 864,310 864,414
+      C864,610 512,810 512,810 Z"/>
+  </defs>
+
+  <rect x="0" y="0" width="1024" height="1024" rx="232" fill="url(#tile)"/>
+  <rect x="10" y="10" width="1004" height="1004" rx="224" fill="none"
+        stroke="#FFFFFF" stroke-opacity="0.6" stroke-width="6"/>
+
+  <g filter="url(#lift)">
+    <use href="#heart" fill="url(#gold)"/>
+    <use href="#heart" fill="url(#sheen)"/>
+  </g>
+</svg>
